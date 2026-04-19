@@ -78,3 +78,4 @@ Practice 10 times. Time it. The timing is the win.
 
 > Pose estimation runs in your browser via MediaPipe WebAssembly. No video frames, no images, and no landmark coordinates are transmitted to any server. If you opt into Coach Review, only numeric per-rep summaries (joint angles, tempo) are sent to Google Gemini. You can use FormGuard fully offline.
 # gaurdform
+# gaurdform
