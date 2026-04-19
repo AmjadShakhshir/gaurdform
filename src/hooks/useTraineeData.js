@@ -21,6 +21,32 @@ export function useTraineeData() {
         setPrs(allPRs);
         setStreakInfo(computeStreak(allSessions));
     }, []);
+    const syncPendingSessions = useCallback(async () => {
+        if (!supabaseEnabled || syncInFlight.current)
+            return;
+        syncInFlight.current = true;
+        try {
+            const unsynced = await getUnsyncedSessions();
+            let syncedCount = 0;
+            for (const session of unsynced) {
+                try {
+                    const synced = await logSession(session);
+                    if (!synced)
+                        break;
+                    await markSessionSynced(session.id);
+                    syncedCount += 1;
+                }
+                catch {
+                    break;
+                }
+            }
+            if (syncedCount > 0)
+                await load();
+        }
+        finally {
+            syncInFlight.current = false;
+        }
+    }, [load]);
     // Initial load
     useEffect(() => {
         load().finally(() => setIsLoading(false));
@@ -34,28 +60,23 @@ export function useTraineeData() {
             return;
         const { data: { subscription } } = sb.auth.onAuthStateChange((_event, session) => {
             if (session?.user) {
-                syncPendingSessions();
+                void syncPendingSessions();
             }
         });
         return () => { subscription.unsubscribe(); };
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
-    async function syncPendingSessions() {
-        if (syncInFlight.current)
+    }, [syncPendingSessions]);
+    useEffect(() => {
+        if (!supabaseEnabled || typeof window === "undefined")
             return;
-        syncInFlight.current = true;
-        try {
-            const unsynced = await getUnsyncedSessions();
-            for (const s of unsynced) {
-                await logSession(s);
-                await markSessionSynced(s.id);
-            }
-            if (unsynced.length > 0)
-                await load();
+        const handleOnline = () => { void syncPendingSessions(); };
+        window.addEventListener("online", handleOnline);
+        if (window.navigator.onLine) {
+            void syncPendingSessions();
         }
-        finally {
-            syncInFlight.current = false;
-        }
-    }
+        return () => {
+            window.removeEventListener("online", handleOnline);
+        };
+    }, [syncPendingSessions]);
     const saveSession = useCallback(async (args) => {
         // Write to IndexedDB first (works offline)
         const saved = await saveSessionLocally({
@@ -66,8 +87,10 @@ export function useTraineeData() {
         const newPRs = await detectAndSavePRs(args.exercise, saved);
         // Optimistically sync to Supabase
         try {
-            await logSession(saved);
-            await markSessionSynced(saved.id);
+            const synced = await logSession(saved);
+            if (synced) {
+                await markSessionSynced(saved.id);
+            }
         }
         catch {
             // Stays unsynced locally — will retry on next auth change

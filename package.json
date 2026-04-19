@@ -6,19 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview",
-    "cap:build": "CAPACITOR=true tsc && CAPACITOR=true vite build && npx cap sync",
-    "cap:ios": "npm run cap:build && npx cap open ios",
-    "cap:android": "npm run cap:build && npx cap open android"
+    "preview": "vite preview"
   },
   "dependencies": {
-    "@capacitor/android": "^8.3.1",
-    "@capacitor/cli": "^8.3.1",
-    "@capacitor/core": "^8.3.1",
-    "@capacitor/haptics": "^8.0.2",
-    "@capacitor/ios": "^8.3.1",
-    "@capacitor/splash-screen": "^8.0.1",
-    "@capacitor/status-bar": "^8.0.2",
     "@mediapipe/tasks-vision": "^0.10.18",
     "@supabase/supabase-js": "^2.45.0",
     "idb": "^8.0.3",

@@ -36,11 +36,14 @@ export function getSupabase() {
 export async function logSession(s) {
     const sb = getSupabase();
     if (!sb)
-        return;
+        return false;
     const { data: userData } = await sb.auth.getUser();
     if (!userData.user)
-        return;
-    await sb.from("sessions").insert({ ...s, user_id: userData.user.id });
+        return false;
+    const { error } = await sb.from("sessions").insert({ ...s, user_id: userData.user.id });
+    if (error)
+        throw error;
+    return true;
 }
 export async function fetchSessions() {
     const sb = getSupabase();

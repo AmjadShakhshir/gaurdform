@@ -1,4 +1,3 @@
-import { Haptics, ImpactStyle, NotificationType } from "@capacitor/haptics";
 const SPEECH_COOLDOWN_MS = 3000;
 const SAME_MSG_COOLDOWN_MS = 8000;
 let lastSpeakAt = 0;
@@ -28,37 +27,23 @@ export function speak(msg) {
     lastMessage = msg;
     lastMessageAt = now;
 }
-/** Haptic feedback, scaled by severity.
- *  Uses Capacitor Haptics on native (iOS/Android) for reliable patterns,
- *  falls back to the web Vibration API on desktop browsers.
- */
+/** Haptic feedback, scaled by severity, using the web Vibration API when available. */
 export function haptic(severity) {
-    // Try Capacitor native haptics first (works on iOS where navigator.vibrate is absent)
-    Haptics.impact({ style: ImpactStyle.Medium }).catch(() => {
-        // Not on a native platform — fall back to web Vibration API
-        if (typeof navigator === "undefined" || !("vibrate" in navigator))
-            return;
-        switch (severity) {
-            case "good":
-                navigator.vibrate(80);
-                break;
-            case "warn":
-                navigator.vibrate([60, 40, 60]);
-                break;
-            case "error":
-                navigator.vibrate([100, 50, 100, 50, 100]);
-                break;
-            case "critical":
-                navigator.vibrate([100, 30, 100, 30, 200]);
-                break;
-        }
-    });
-    // Override impact style per severity on native
-    if (severity === "good") {
-        Haptics.notification({ type: NotificationType.Success }).catch(() => { });
-    }
-    else if (severity === "critical") {
-        Haptics.notification({ type: NotificationType.Error }).catch(() => { });
+    if (typeof navigator === "undefined" || !("vibrate" in navigator))
+        return;
+    switch (severity) {
+        case "good":
+            navigator.vibrate(80);
+            break;
+        case "warn":
+            navigator.vibrate([60, 40, 60]);
+            break;
+        case "error":
+            navigator.vibrate([100, 50, 100, 50, 100]);
+            break;
+        case "critical":
+            navigator.vibrate([100, 30, 100, 30, 200]);
+            break;
     }
 }
 /** Cancel any queued/active speech. Call on exercise switch or unmount. */

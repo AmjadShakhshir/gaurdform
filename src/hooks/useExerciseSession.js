@@ -2,6 +2,43 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { createPoseEngine } from "../lib/pose";
 import { speak, haptic, cancelSpeech } from "../lib/feedback";
 import { detectViewAngle, resetViewAngle } from "../lib/viewAngle";
+const NO_POSE_WARNING_DELAY_MS = 500;
+function cleanupSessionResources(videoRef, landmarkerRef, rafRef) {
+    if (rafRef.current)
+        cancelAnimationFrame(rafRef.current);
+    rafRef.current = null;
+    if (landmarkerRef.current) {
+        landmarkerRef.current.close();
+        landmarkerRef.current = null;
+    }
+    const video = videoRef.current;
+    const stream = video?.srcObject;
+    stream?.getTracks().forEach((track) => track.stop());
+    if (video) {
+        video.pause();
+        video.srcObject = null;
+    }
+}
+function getStartupErrorMessage(error) {
+    if (error instanceof DOMException) {
+        if (error.name === "NotAllowedError" || error.name === "SecurityError") {
+            return "Camera permission was blocked. Allow camera access in the browser and tap Retry.";
+        }
+        if (error.name === "NotFoundError" || error.name === "OverconstrainedError") {
+            return "No working camera was found on this device.";
+        }
+        if (error.name === "NotReadableError" || error.name === "AbortError") {
+            return "The camera is busy or could not start. Close other camera apps and tap Retry.";
+        }
+    }
+    if (error instanceof Error) {
+        if (/fetch|network|load/i.test(error.message)) {
+            return "The pose model could not load. Check your connection and tap Retry.";
+        }
+        return error.message;
+    }
+    return "Camera startup failed. Tap Retry to try again.";
+}
 export function useExerciseSession(exercise, videoRef) {
     const [status, setStatus] = useState("idle");
     const [statusMsg, setStatusMsg] = useState("");
@@ -37,6 +74,15 @@ export function useExerciseSession(exercise, videoRef) {
         setViewAngle("unknown");
         didSetCompleteRef.current = false;
     }, [exercise]);
+    const setSessionError = useCallback((message) => {
+        cleanupSessionResources(videoRef, landmarkerRef, rafRef);
+        didSetCompleteRef.current = false;
+        cancelSpeech();
+        setStatus("error");
+        setStatusMsg(message);
+        setLandmarks(null);
+        setFps(0);
+    }, [videoRef]);
     const start = useCallback(async () => {
         setStatus("loading");
         setStatusMsg("Starting camera…");
@@ -49,6 +95,13 @@ export function useExerciseSession(exercise, videoRef) {
         frameCountRef.current = 0;
         consecutiveErrorCountsRef.current.clear();
         lastValidPoseAtRef.current = 0;
+        setLandmarks(null);
+        setActiveFeedback([]);
+        setFps(0);
+        if (!navigator.mediaDevices?.getUserMedia) {
+            setSessionError("This browser does not support live camera access.");
+            return;
+        }
         try {
             // 1. Camera
             const stream = await navigator.mediaDevices.getUserMedia({
@@ -79,100 +132,104 @@ export function useExerciseSession(exercise, videoRef) {
                 if (v.currentTime !== lastVideoTimeRef.current && v.readyState >= 2) {
                     lastVideoTimeRef.current = v.currentTime;
                     const now = performance.now();
-                    // FPS EMA (updated every 30 frames to avoid excessive renders).
-                    if (lastLoopTimeRef.current > 0) {
-                        fpsEmaRef.current =
-                            0.9 * fpsEmaRef.current + 0.1 * (1000 / (now - lastLoopTimeRef.current));
-                    }
-                    lastLoopTimeRef.current = now;
-                    frameCountRef.current += 1;
-                    if (frameCountRef.current % 30 === 0) {
-                        setFps(Math.round(fpsEmaRef.current));
-                    }
-                    const result = lm.detectForVideo(v, now);
-                    const poseLandmarks = result.landmarks?.[0] ?? null;
-                    setLandmarks(poseLandmarks);
-                    if (poseLandmarks) {
-                        lastValidPoseAtRef.current = now;
-                        const angle = detectViewAngle(poseLandmarks);
-                        setViewAngle(angle);
-                        const viewOk = angle === "unknown" || exercise.supportedViews.includes(angle);
-                        if (!viewOk) {
+                    try {
+                        if (lastLoopTimeRef.current > 0) {
+                            fpsEmaRef.current =
+                                0.9 * fpsEmaRef.current + 0.1 * (1000 / (now - lastLoopTimeRef.current));
+                        }
+                        lastLoopTimeRef.current = now;
+                        frameCountRef.current += 1;
+                        if (frameCountRef.current % 30 === 0) {
+                            setFps(Math.round(fpsEmaRef.current));
+                        }
+                        const result = lm.detectForVideo(v, now);
+                        const poseLandmarks = result.landmarks?.[0] ?? null;
+                        setLandmarks(poseLandmarks);
+                        if (poseLandmarks) {
+                            lastValidPoseAtRef.current = now;
+                            const angle = detectViewAngle(poseLandmarks);
+                            setViewAngle(angle);
+                            const viewOk = angle === "unknown" || exercise.supportedViews.includes(angle);
+                            if (!viewOk) {
+                                setActiveFeedback([{
+                                        id: "reposition",
+                                        severity: "warn",
+                                        message: "Reposition camera for this exercise",
+                                        at: now,
+                                    }]);
+                            }
+                            else {
+                                const evalResult = exercise.evaluate(poseLandmarks, stateRef.current, now, angle);
+                                const prevS = stateRef.current;
+                                const newS = evalResult.state;
+                                stateRef.current = newS;
+                                if (prevS.phase !== newS.phase ||
+                                    prevS.reps !== newS.reps ||
+                                    prevS.repLog.length !== newS.repLog.length) {
+                                    setState(newS);
+                                }
+                                const activeErrorIds = new Set(evalResult.feedback.filter((feedback) => feedback.severity === "error").map((feedback) => feedback.id));
+                                for (const [id] of consecutiveErrorCountsRef.current) {
+                                    if (!activeErrorIds.has(id))
+                                        consecutiveErrorCountsRef.current.delete(id);
+                                }
+                                const escalatedFeedback = evalResult.feedback.map((feedback) => {
+                                    if (feedback.severity !== "error")
+                                        return feedback;
+                                    const count = (consecutiveErrorCountsRef.current.get(feedback.id) ?? 0) + 1;
+                                    consecutiveErrorCountsRef.current.set(feedback.id, count);
+                                    if (count >= 3) {
+                                        return { ...feedback, severity: "critical", message: `STOP — ${feedback.message}` };
+                                    }
+                                    return feedback;
+                                });
+                                if (escalatedFeedback.length > 0 || evalResult.repCompleted) {
+                                    setActiveFeedback((prev) => {
+                                        const combined = [...prev];
+                                        for (const feedback of escalatedFeedback) {
+                                            const idx = combined.findIndex((item) => item.id === feedback.id);
+                                            if (idx >= 0)
+                                                combined[idx] = feedback;
+                                            else
+                                                combined.push(feedback);
+                                        }
+                                        return combined.filter((item) => now - item.at < 2500);
+                                    });
+                                    for (const feedback of escalatedFeedback) {
+                                        if (feedback.id !== "calibrating") {
+                                            if (feedback.severity === "critical") {
+                                                speak("STOP and reset form");
+                                                haptic("critical");
+                                            }
+                                            else if (feedback.severity === "error" || feedback.severity === "warn") {
+                                                speak(feedback.message);
+                                                haptic(feedback.severity);
+                                            }
+                                            else if (feedback.severity === "good") {
+                                                haptic("good");
+                                            }
+                                        }
+                                        if (feedback.id === "set-complete" && !didSetCompleteRef.current) {
+                                            didSetCompleteRef.current = true;
+                                            setSetComplete(true);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        else if (lastValidPoseAtRef.current > 0 && now - lastValidPoseAtRef.current > NO_POSE_WARNING_DELAY_MS) {
                             setActiveFeedback([{
-                                    id: "reposition",
+                                    id: "no-pose",
                                     severity: "warn",
-                                    message: "Reposition camera for this exercise",
+                                    message: "Step fully into frame",
                                     at: now,
                                 }]);
                         }
-                        else {
-                            const evalResult = exercise.evaluate(poseLandmarks, stateRef.current, now, angle);
-                            const prevS = stateRef.current;
-                            const newS = evalResult.state;
-                            stateRef.current = newS;
-                            if (prevS.phase !== newS.phase ||
-                                prevS.reps !== newS.reps ||
-                                prevS.repLog.length !== newS.repLog.length) {
-                                setState(newS);
-                            }
-                            // Consecutive error escalation: same error 3+ frames → critical
-                            const activeErrorIds = new Set(evalResult.feedback.filter((f) => f.severity === "error").map((f) => f.id));
-                            for (const [id] of consecutiveErrorCountsRef.current) {
-                                if (!activeErrorIds.has(id))
-                                    consecutiveErrorCountsRef.current.delete(id);
-                            }
-                            const escalatedFeedback = evalResult.feedback.map((f) => {
-                                if (f.severity !== "error")
-                                    return f;
-                                const count = (consecutiveErrorCountsRef.current.get(f.id) ?? 0) + 1;
-                                consecutiveErrorCountsRef.current.set(f.id, count);
-                                if (count >= 3) {
-                                    return { ...f, severity: "critical", message: `STOP — ${f.message}` };
-                                }
-                                return f;
-                            });
-                            if (escalatedFeedback.length > 0 || evalResult.repCompleted) {
-                                setActiveFeedback((prev) => {
-                                    const combined = [...prev];
-                                    for (const f of escalatedFeedback) {
-                                        const idx = combined.findIndex((x) => x.id === f.id);
-                                        if (idx >= 0)
-                                            combined[idx] = f;
-                                        else
-                                            combined.push(f);
-                                    }
-                                    return combined.filter((x) => now - x.at < 2500);
-                                });
-                                for (const f of escalatedFeedback) {
-                                    if (f.id !== "calibrating") {
-                                        if (f.severity === "critical") {
-                                            speak("STOP and reset form");
-                                            haptic("critical");
-                                        }
-                                        else if (f.severity === "error" || f.severity === "warn") {
-                                            speak(f.message);
-                                            haptic(f.severity);
-                                        }
-                                        else if (f.severity === "good") {
-                                            haptic("good");
-                                        }
-                                    }
-                                    if (f.id === "set-complete" && !didSetCompleteRef.current) {
-                                        didSetCompleteRef.current = true;
-                                        setSetComplete(true);
-                                    }
-                                }
-                            }
-                        }
                     }
-                    else if (lastValidPoseAtRef.current > 0 && now - lastValidPoseAtRef.current > 500) {
-                        // Visibility debounce: only nag user after 500 ms of no pose
-                        setActiveFeedback([{
-                                id: "no-pose",
-                                severity: "warn",
-                                message: "Step fully into frame",
-                                at: now,
-                            }]);
+                    catch (error) {
+                        console.error(error);
+                        setSessionError("Pose tracking stopped unexpectedly. Tap Retry to start the camera again.");
+                        return;
                     }
                 }
                 rafRef.current = requestAnimationFrame(loop);
@@ -181,26 +238,17 @@ export function useExerciseSession(exercise, videoRef) {
         }
         catch (err) {
             console.error(err);
-            setStatus("error");
-            setStatusMsg(err instanceof Error ? err.message : "Failed to start");
+            setSessionError(getStartupErrorMessage(err));
         }
-    }, [exercise, videoRef]);
+    }, [exercise, setSessionError, videoRef]);
     const stop = useCallback(() => {
-        if (rafRef.current)
-            cancelAnimationFrame(rafRef.current);
-        rafRef.current = null;
+        cleanupSessionResources(videoRef, landmarkerRef, rafRef);
         didSetCompleteRef.current = false;
-        if (landmarkerRef.current) {
-            landmarkerRef.current.close();
-            landmarkerRef.current = null;
-        }
-        const v = videoRef.current;
-        const stream = v?.srcObject;
-        stream?.getTracks().forEach((t) => t.stop());
-        if (v)
-            v.srcObject = null;
         cancelSpeech();
         setStatus("idle");
+        setStatusMsg("");
+        setLandmarks(null);
+        setFps(0);
     }, [videoRef]);
     // Keep stopRef in sync with the latest memoized stop function.
     stopRef.current = stop;

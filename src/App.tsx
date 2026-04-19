@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from "react";
-import { Shield, Timer, Coffee, Square, Dumbbell, CalendarDays } from "lucide-react";
+import { Timer, Coffee, Square, Dumbbell, CalendarDays } from "lucide-react";
 import { EXERCISES } from "./exercises/index";
 import type { ExerciseDefinition, ExerciseId } from "./exercises/types";
 import { useExerciseSession } from "./hooks/useExerciseSession";
@@ -239,33 +239,36 @@ export default function App() {
     <div className="relative overflow-hidden h-[100dvh] md:h-auto md:overflow-visible md:min-h-screen md:max-w-5xl md:mx-auto md:px-4 md:py-6 md:space-y-6 bg-brand-bg">
 
       {/* ── Desktop header (hidden on mobile) ── */}
-      <header className="hidden md:flex items-center justify-between">
-        <div>
+      <header className="hidden md:flex items-center justify-between gap-6">
+        <div className="min-w-0">
           <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
-            <Shield size={28} className="text-brand-accent" />
-            <span className="text-gradient-brand">FormGuard</span>
-            <span className="text-slate-400 font-normal text-base ml-1">AI trainer in your browser</span>
+            <img src="/gym.png" alt="FormGuard logo" className="h-8 w-8 rounded-lg shrink-0" />
+            <span className="text-gradient-brand whitespace-nowrap">FormGuard</span>
           </h1>
-          <p className="text-xs text-slate-500 mt-1">
-            Pose runs on-device via MediaPipe. Your video never leaves this page.
-          </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 shrink-0">
           <button
             onClick={() => setShowPlanBuilder(true)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl glass-card text-white/60 hover:text-white text-xs font-medium transition-smooth"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl ring-1 ring-brand-accent/30 glass-card text-brand-accent hover:ring-brand-accent/60 text-xs font-semibold transition-smooth whitespace-nowrap"
           >
-            <CalendarDays size={14} className="text-brand-accent" />
-            My Plan
+            <CalendarDays size={14} />
+            {workoutSession.plan
+              ? `Day ${(workoutSession.todayDayIndex ?? 0) + 1}/${workoutSession.plan.days.length}`
+              : "My Plan"}
           </button>
           <StreakBadge streakInfo={traineeData.streakInfo} />
-          <ExerciseSelector
-            selected={selected}
-            onSelect={setSelected}
-            disabled={status === "loading"}
-          />
         </div>
       </header>
+
+      {/* ── Desktop: exercise selector bar ── */}
+      <div className="hidden md:block glass-card rounded-xl p-3 animate-fade-in">
+        <p className="text-sm text-slate-400 font-medium mb-2 px-1">AI trainer in your browser</p>
+        <ExerciseSelector
+          selected={selected}
+          onSelect={setSelected}
+          disabled={status === "loading"}
+        />
+      </div>
 
       {/* ── Desktop setup tip (hidden on mobile) ── */}
       {status === "idle" && (
@@ -447,20 +450,31 @@ export default function App() {
 
       {/* ── Desktop: panels grid ── */}
       {!isMobile && (
-        <>
+        <div
+          className={`grid gap-4 ${
+            workoutSession.plan && workoutSession.todayWorkout
+              ? "grid-cols-[280px_1fr_1fr]"
+              : "grid-cols-2"
+          }`}
+        >
+          {/* Workout column — only when plan is active */}
           {workoutSession.plan && workoutSession.todayWorkout && (
-            <div className="glass-card rounded-2xl p-4 animate-slide-up">
+            <div className="glass-card rounded-2xl p-4 animate-slide-up flex flex-col">
+              <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                <Dumbbell size={11} className="text-brand-accent" />
+                Today's Workout
+              </p>
               {workoutPanel}
             </div>
           )}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="glass-card rounded-2xl p-4 animate-slide-up stagger-1">{coachPanel}</div>
-            <div className="space-y-4">
-              <div className="glass-card rounded-2xl p-4 animate-slide-up stagger-2">{progressPanel}</div>
-              <div className="glass-card rounded-2xl p-4 animate-slide-up stagger-3">{historyPanel}</div>
-            </div>
+          {/* Coach column */}
+          <div className="glass-card rounded-2xl p-4 animate-slide-up stagger-1">{coachPanel}</div>
+          {/* Progress + History column */}
+          <div className="space-y-4">
+            <div className="glass-card rounded-2xl p-4 animate-slide-up stagger-2">{progressPanel}</div>
+            <div className="glass-card rounded-2xl p-4 animate-slide-up stagger-3">{historyPanel}</div>
           </div>
-        </>
+        </div>
       )}
 
       {/* Mobile bottom sheet */}
@@ -488,7 +502,7 @@ export default function App() {
 
       {isMobile && status === "idle" && selected.id === "squat" && showSquatTutorial && (
         <SquatTutorialModal
-          videoSrc="/videos/squat-tutorial.mp4"
+          videoSrc="/squat.mp4"
           onSkip={skipSquatTutorial}
           onClose={closeSquatTutorial}
           onEnded={endSquatTutorial}

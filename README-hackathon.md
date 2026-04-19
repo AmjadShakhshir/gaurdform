@@ -72,7 +72,7 @@ Practice 10 times. Time it. The timing is the win.
 - Personalized thresholds (mobility varies — learn the user's baseline after 3 sessions).
 - Side-view camera mode for back-squat check (currently front-only).
 - Lift-specific exercises (RDL, overhead press, push-up).
-- Native mobile wrapper (Capacitor — the PWA code runs unchanged).
+- Better PWA install polish, including branded icons, screenshots, and richer offline status UX.
 
 ## Privacy statement (the hackathon slide)
 

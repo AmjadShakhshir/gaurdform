@@ -3,13 +3,25 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 import "./index.css";
-import { registerSW } from "virtual:pwa-register";
-import { SplashScreen } from "@capacitor/splash-screen";
-import { StatusBar, Style } from "@capacitor/status-bar";
-registerSW({ immediate: true });
+const CACHE_CLEANUP_KEY = "formguard:cache-cleanup:v1";
+async function cleanupLegacyPwaCache() {
+    try {
+        const alreadyCleaned = window.localStorage.getItem(CACHE_CLEANUP_KEY) === "1";
+        if (alreadyCleaned)
+            return;
+        if ("serviceWorker" in navigator) {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(registrations.map((registration) => registration.unregister()));
+        }
+        if ("caches" in window) {
+            const keys = await caches.keys();
+            await Promise.all(keys.map((key) => caches.delete(key)));
+        }
+        window.localStorage.setItem(CACHE_CLEANUP_KEY, "1");
+    }
+    catch {
+        // Ignore cleanup failures; app should continue booting.
+    }
+}
+void cleanupLegacyPwaCache();
 ReactDOM.createRoot(document.getElementById("root")).render(_jsx(React.StrictMode, { children: _jsx(App, {}) }));
-// Hide splash screen and configure status bar once the app has rendered.
-// These are no-ops in the browser (Capacitor gracefully ignores them).
-SplashScreen.hide().catch(() => { });
-StatusBar.setStyle({ style: Style.Dark }).catch(() => { });
-StatusBar.setBackgroundColor({ color: "#0f172a" }).catch(() => { });
