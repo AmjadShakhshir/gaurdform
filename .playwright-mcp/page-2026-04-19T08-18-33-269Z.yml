@@ -1,0 +1,74 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - heading "FormGuard AI trainer in your browser" [level=1] [ref=e6]:
+        - img [ref=e7]
+        - generic [ref=e9]: FormGuard
+        - generic [ref=e10]: AI trainer in your browser
+      - paragraph [ref=e11]: Pose runs on-device via MediaPipe. Your video never leaves this page.
+    - generic [ref=e12]:
+      - 'button "Streak: 0 days" [ref=e13] [cursor=pointer]':
+        - generic [ref=e14]:
+          - img [ref=e15]
+          - generic [ref=e17]:
+            - text: "0"
+            - generic [ref=e18]: days
+          - img [ref=e19]
+      - generic [ref=e21]:
+        - generic [ref=e22]:
+          - paragraph [ref=e23]: Legs
+          - generic [ref=e24]:
+            - button "🦵Squat" [ref=e25] [cursor=pointer]
+            - button "🚶Lunge" [ref=e26] [cursor=pointer]
+            - button "🔄RDL" [ref=e27] [cursor=pointer]
+            - button "🦵Bulgarian Split Squat" [ref=e28] [cursor=pointer]
+            - button "🦿Leg Press" [ref=e29] [cursor=pointer]
+            - button "👟Calf Raise" [ref=e30] [cursor=pointer]
+        - generic [ref=e31]:
+          - paragraph [ref=e32]: Upper Body
+          - generic [ref=e33]:
+            - button "🤸Push-Up" [ref=e34] [cursor=pointer]
+            - button "🧘Plank" [ref=e35] [cursor=pointer]
+            - button "💪Bicep Curl" [ref=e36] [cursor=pointer]
+            - button "🙌Overhead Press" [ref=e37] [cursor=pointer]
+        - generic [ref=e38]:
+          - paragraph [ref=e39]: Compound
+          - generic [ref=e40]:
+            - button "🏋️Deadlift" [ref=e41] [cursor=pointer]
+            - button "🚣Bent-Over Row" [ref=e42] [cursor=pointer]
+  - generic [ref=e43]:
+    - img [ref=e44]
+    - generic [ref=e50]: "Setup: Stand ~2 m from camera. Face it for knee-valgus feedback, or stand sideways for depth & heel-rise checks. Full body must be in frame."
+  - button "Start" [ref=e56] [cursor=pointer]
+  - generic [ref=e58]:
+    - generic [ref=e59]:
+      - img [ref=e60]
+      - generic [ref=e63]:
+        - generic [ref=e64]: "0"
+        - generic [ref=e65]: 0/10
+    - generic [ref=e66]:
+      - generic [ref=e67]: Phase
+      - generic [ref=e68]: Calibrating…
+  - generic [ref=e69]:
+    - generic [ref=e72]:
+      - generic [ref=e73]:
+        - heading "AI Coach Review" [level=3] [ref=e74]:
+          - img [ref=e75]
+          - text: AI Coach Review
+        - paragraph [ref=e83]: Sends only numeric metrics — never video.
+      - button "Review 0 reps" [disabled] [ref=e84]
+    - generic [ref=e85]:
+      - generic [ref=e87]:
+        - img [ref=e88]
+        - paragraph [ref=e90]: No sessions yet
+        - paragraph [ref=e91]: Complete a workout to see your progress here.
+      - generic [ref=e94]:
+        - heading "Recent Sessions" [level=3] [ref=e95]
+        - paragraph [ref=e96]: No sessions yet — finish a set to log one.
+  - contentinfo [ref=e97]:
+    - paragraph [ref=e98]:
+      - strong [ref=e99]: "Privacy:"
+      - text: Pose estimation runs in your browser. No frames, images, or landmark coordinates are ever sent to a server. Optional coach review sends only numeric per-rep summaries.
+    - paragraph [ref=e100]:
+      - strong [ref=e101]: "Install:"
+      - text: Tap the browser menu → "Add to Home Screen" to use FormGuard offline.

@@ -1,0 +1,53 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - heading "FormGuard · AI trainer in your browser" [level=1] [ref=e6]
+      - paragraph [ref=e7]: Pose runs on-device via MediaPipe. Your video never leaves this page.
+    - generic [ref=e8]:
+      - generic [ref=e9]:
+        - paragraph [ref=e10]: Legs
+        - generic [ref=e11]:
+          - button "Squat" [disabled] [ref=e12]
+          - button "Lunge" [disabled] [ref=e13]
+          - button "RDL" [disabled] [ref=e14]
+          - button "Bulgarian Split Squat" [disabled] [ref=e15]
+          - button "Leg Press" [disabled] [ref=e16]
+          - button "Calf Raise" [disabled] [ref=e17]
+      - generic [ref=e18]:
+        - paragraph [ref=e19]: Upper Body
+        - generic [ref=e20]:
+          - button "Push-Up" [disabled] [ref=e21]
+          - button "Plank" [disabled] [ref=e22]
+          - button "Bicep Curl" [disabled] [ref=e23]
+          - button "Overhead Press" [disabled] [ref=e24]
+      - generic [ref=e25]:
+        - paragraph [ref=e26]: Compound
+        - generic [ref=e27]:
+          - button "Deadlift" [disabled] [ref=e28]
+          - button "Bent-Over Row" [disabled] [ref=e29]
+  - button "Starting camera…" [disabled] [ref=e64]
+  - generic [ref=e38]:
+    - generic [ref=e39]:
+      - img [ref=e40]
+      - generic [ref=e43]:
+        - generic [ref=e44]: "0"
+        - generic [ref=e45]: 0/60s
+    - generic [ref=e46]:
+      - generic [ref=e47]: Phase
+      - generic [ref=e48]: Calibrating…
+  - generic [ref=e49]:
+    - generic [ref=e51]:
+      - generic [ref=e52]:
+        - heading "AI Coach Review" [level=3] [ref=e53]
+        - paragraph [ref=e54]: Sends only numeric metrics — never video.
+      - button "Review 0 reps" [disabled] [ref=e55]
+    - generic [ref=e56]:
+      - heading "History" [level=3] [ref=e57]
+      - paragraph [ref=e58]: Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env to enable auth + history.
+  - contentinfo [ref=e59]:
+    - paragraph [ref=e60]:
+      - strong [ref=e61]: "Privacy:"
+      - text: Pose estimation runs in your browser. No frames, images, or landmark coordinates are ever sent to a server. Optional coach review sends only numeric per-rep summaries.
+    - paragraph [ref=e62]:
+      - strong [ref=e63]: "Install:"
+      - text: Tap the browser menu → "Add to Home Screen" to use FormGuard offline.

@@ -1,0 +1,9 @@
+[    2857ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ https://2743-77-246-202-190.ngrok-free.app/node_modules/.vite/deps/chunk-PJEEZAML.js?v=e90b702c:21550
+[    2907ms] [WARNING] <meta name="apple-mobile-web-app-capable" content="yes"> is deprecated. Please include <meta name="mobile-web-app-capable" content="yes"> @ https://2743-77-246-202-190.ngrok-free.app/:0
+[  286669ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ https://2743-77-246-202-190.ngrok-free.app/node_modules/.vite/deps/chunk-PJEEZAML.js?v=e90b702c:21550
+[  286706ms] [WARNING] <meta name="apple-mobile-web-app-capable" content="yes"> is deprecated. Please include <meta name="mobile-web-app-capable" content="yes"> @ https://2743-77-246-202-190.ngrok-free.app/:0
+[  289319ms] [LOG] I0419 08:23:19.662000 2158768 gl_context.cc:407] GL version: 3.0 (OpenGL ES 3.0 (WebGL 2.0 (OpenGL ES 3.0 Chromium))), renderer: WebKit WebGL @ https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm/vision_wasm_internal.js:4668
+[  289319ms] [WARNING] W0419 08:23:19.664000 2158768 gl_context.cc:1118] OpenGL error checking is disabled @ https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm/vision_wasm_internal.js:8367
+[  289321ms] [LOG] Graph successfully started running. @ https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm/vision_wasm_internal.js:1355
+[  334085ms] [LOG] Graph finished closing successfully. @ https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm/vision_wasm_internal.js:1355
+[  334086ms] [LOG] I0419 08:24:04.430000 2158768 gl_context_webgl.cc:140] Successfully destroyed WebGL context with handle 1 @ https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm/vision_wasm_internal.js:4668
