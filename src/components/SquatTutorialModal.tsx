@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 
 interface SquatTutorialModalProps {
@@ -8,6 +9,12 @@ interface SquatTutorialModalProps {
 }
 
 export function SquatTutorialModal({ videoSrc, onSkip, onClose, onEnded }: SquatTutorialModalProps) {
+  const [hasVideoError, setHasVideoError] = useState(false);
+
+  useEffect(() => {
+    setHasVideoError(false);
+  }, [videoSrc]);
+
   return (
     <div
       role="dialog"
@@ -33,18 +40,26 @@ export function SquatTutorialModal({ videoSrc, onSkip, onClose, onEnded }: Squat
         </div>
 
         <div className="overflow-hidden rounded-xl border border-white/10 bg-black/40">
-          <video
-            className="h-full w-full"
-            src={videoSrc}
-            controls
-            autoPlay
-            muted
-            playsInline
-            preload="metadata"
-            onEnded={onEnded}
-          >
-            Your browser does not support embedded videos.
-          </video>
+          {hasVideoError ? (
+            <div className="flex min-h-44 flex-col items-center justify-center gap-2 px-4 py-6 text-center">
+              <p className="text-sm font-semibold text-white">Tutorial video is unavailable.</p>
+              <p className="text-xs text-slate-300">Tap Skip to continue your squat session.</p>
+            </div>
+          ) : (
+            <video
+              className="h-full w-full"
+              controls
+              autoPlay
+              muted
+              playsInline
+              preload="metadata"
+              onEnded={onEnded}
+              onError={() => setHasVideoError(true)}
+            >
+              <source src={videoSrc} type="video/mp4" />
+              Your browser does not support embedded videos.
+            </video>
+          )}
         </div>
 
         <div className="mt-4 flex items-center justify-end">

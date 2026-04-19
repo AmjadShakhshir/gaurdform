@@ -1,4 +1,3 @@
-Place the squat tutorial asset here as:
-- squat-tutorial.mp4
+The squat tutorial currently uses /squat.mp4 from the public root.
 
-The app expects the tutorial at /videos/squat-tutorial.mp4.
+This folder is optional and can hold future exercise videos.
