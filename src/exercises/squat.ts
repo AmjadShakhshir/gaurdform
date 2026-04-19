@@ -17,14 +17,15 @@ const TOP_KNEE        = 165; // above → rep complete
 const WARN_DEPTH_KNEE    = 115; // above this at bottom → "go deeper"
 
 // Front / back view
-const MAX_BACK_LEAN_DEG    = 55;   // shoulder-hip vector vs vertical
+const MAX_BACK_LEAN_DEG    = 70;   // shoulder-hip vector vs vertical — flag only extreme lean (long femurs need more)
 const MIN_KNEE_WIDTH_RATIO = 0.70; // knee width / ankle width (cave detection)
 const SYMMETRY_DELTA       = 20;   // |L - R| knee angle at bottom
 const STANCE_MIN_RATIO     = 0.75; // ankle/hip span too narrow
 const STANCE_MAX_RATIO     = 1.60; // ankle/hip span too wide
 
 // Side view
-const MAX_TORSO_LEAN   = 48;    // degrees from vertical
+const MAX_TORSO_LEAN   = 65;    // degrees from vertical — flag only extreme lean (optimal angle depends on femur length)
+const SPINE_ROUND_MIN  = 155;   // ear→shoulder→hip angle; below this = upper-back rounding
 const BUTT_WINK_DELTA  = 15;    // degrees extra back angle vs start of descent
 const HEEL_RISE_THRESH = 0.025; // normalised Y drop from standing baseline
 const BAR_PATH_THRESH  = 0.055; // normalised X wrist deviation from baseline
@@ -34,9 +35,10 @@ const CALIBRATION_MS = 2500;
 const HYSTERESIS     = 5;
 
 // ── Module-level smoothers ────────────────────────────────────────────────────
-const leftKneeSmoother  = new RollingMedian(5);
-const rightKneeSmoother = new RollingMedian(5);
-const backLeanSmoother  = new RollingMedian(5);
+const leftKneeSmoother   = new RollingMedian(5);
+const rightKneeSmoother  = new RollingMedian(5);
+const backLeanSmoother   = new RollingMedian(5);
+const spineAngleSmoother = new RollingMedian(5);
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function clamp(v: number, lo: number, hi: number) {
@@ -51,7 +53,8 @@ function repQuality(
   buttWink: boolean,
 ): number {
   const depth = 100 * clamp((165 - minKnee) / (165 - 90), 0, 1);  // 40 %
-  const lean  = 100 * clamp(1 - maxBackLean / 65, 0, 1);           // 25 %
+  // Lean penalty starts only above 55° — moderate forward lean is normal for long femurs
+  const lean  = 100 * clamp(1 - Math.max(0, maxBackLean - 55) / 30, 0, 1); // 25 %
   const sym   = 100 * clamp(1 - symmetryDelta / 30, 0, 1);         // 20 %
   const heel  = heelRose ? 60 : 100;                                // 10 %
   const wink  = buttWink ? 70 : 100;                                //  5 %
@@ -74,6 +77,7 @@ export const squat: ExerciseDefinition = {
     leftKneeSmoother.reset();
     rightKneeSmoother.reset();
     backLeanSmoother.reset();
+    spineAngleSmoother.reset();
     return {
       phase: "CALIBRATING",
       reps: 0,
@@ -173,6 +177,16 @@ export const squat: ExerciseDefinition = {
     const vertUp = { x: hpMid.x, y: hpMid.y - 0.2 };
     const backLean = backLeanSmoother.push(angleDeg(shMid, hpMid, vertUp));
 
+    // Spine curvature: ear→shoulder→hip angle (~180° = straight; drops when upper back rounds)
+    // Only computed on side view where sagittal plane is visible
+    let spineAngle = 180;
+    if (isSide) {
+      const visEar = landmarks[useLeft ? LM.LEFT_EAR : LM.RIGHT_EAR];
+      if ((visEar?.visibility ?? 0) > 0.25) {
+        spineAngle = spineAngleSmoother.push(angleDeg(visEar, shMid, hpMid));
+      }
+    }
+
     // ── Phase state machine ───────────────────────────────────────────────────────────────
     if (state.phase === "READY" && kneeAng < DESC_KNEE - HYSTERESIS) {
       state.phase = "DESCENDING";
@@ -252,9 +266,9 @@ export const squat: ExerciseDefinition = {
       if (state.phase === "BOTTOM" && Math.abs(lKneeAng - rKneeAng) > SYMMETRY_DELTA) {
         feedback.push({ id: "symmetry", severity: "warn", message: "Balance weight evenly", at: nowMs });
       }
-      // Back lean
+      // Back lean (only flag extreme lean — moderate forward lean is expected for longer femurs)
       if (backLean > MAX_BACK_LEAN_DEG && inRep) {
-        feedback.push({ id: "chest-up", severity: "warn", message: "Chest up — brace your core", at: nowMs });
+        feedback.push({ id: "chest-up", severity: "warn", message: "Extreme forward lean — widen stance or brace your core", at: nowMs });
       }
       // Stance width (once per session)
       if (state.phase === "READY" && state.scratch.stanceWarned === 0 && state.scratch.stanceRatio > 0) {
@@ -270,9 +284,13 @@ export const squat: ExerciseDefinition = {
         feedback.push({ id: "weight-shift", severity: "warn", message: "Even out your weight", at: nowMs });
       }
     } else {
-      // Forward lean
+      // Forward lean (only flag truly extreme — optimal lean depends on femur length)
       if (backLean > MAX_TORSO_LEAN && inRep) {
-        feedback.push({ id: "forward-lean", severity: "warn", message: "Chest up — too much forward lean", at: nowMs });
+        feedback.push({ id: "forward-lean", severity: "warn", message: "Extreme forward lean — check your stance width", at: nowMs });
+      }
+      // Spine rounding (the real concern: is the back straight, regardless of lean angle)
+      if (spineAngle < SPINE_ROUND_MIN && inRep) {
+        feedback.push({ id: "spine-round", severity: "error", message: "Keep your back straight — don't round your spine", at: nowMs });
       }
       // Butt wink
       if (state.phase === "BOTTOM" && state.scratch.buttWink > 0) {

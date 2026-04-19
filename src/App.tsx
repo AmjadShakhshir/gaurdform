@@ -23,7 +23,8 @@ import { getTraineeProfile, saveTraineeProfile, saveTrainingPlan } from "./lib/l
 import type { TraineeProfile, TrainingPlan } from "./lib/trainingPlan";
 import type { DetectedPR } from "./lib/personalRecords";
 
-const SQUAT_TUTORIAL_SEEN_KEY = "formguard:squat-tutorial-seen:v1";
+const SQUAT_TUTORIAL_SEEN_KEY = "formguard:squat-tutorial-seen:v2";
+const SQUAT_TUTORIAL_VIDEO_SRC = "/squat.mp4?v=20260419-1";
 
 export default function App() {
   const exercises: ExerciseDefinition[] = EXERCISES;
@@ -40,9 +41,24 @@ export default function App() {
   const [restSecondsLeft, setRestSecondsLeft] = useState<number | null>(null);
   const [showSquatTutorial, setShowSquatTutorial] = useState(false);
   const [hasSeenSquatTutorialEver, setHasSeenSquatTutorialEver] = useState(false);
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
   const [showPlanBuilder, setShowPlanBuilder] = useState(false);
   const [sheetCloseSignal, setSheetCloseSignal] = useState(0);
   const workoutSession = useWorkoutSession();
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const mql = window.matchMedia("(pointer: coarse)");
+    const update = () => {
+      const hasTouchPoints = navigator.maxTouchPoints > 0;
+      setIsTouchDevice(mql.matches || hasTouchPoints);
+    };
+
+    update();
+    mql.addEventListener("change", update);
+    return () => mql.removeEventListener("change", update);
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -132,7 +148,7 @@ export default function App() {
   }, [status]);
 
   const shouldShowSquatTutorialBeforeStart =
-    isMobile &&
+    isTouchDevice &&
     status === "idle" &&
     selected.id === "squat" &&
     !hasSeenSquatTutorialEver;
@@ -274,7 +290,18 @@ export default function App() {
       {status === "idle" && (
         <div className="hidden md:flex items-center gap-3 glass-card rounded-xl p-4 text-sm text-slate-300 animate-slide-up">
           <Dumbbell size={16} className="text-brand-accent shrink-0" />
-          <span><span className="font-semibold text-brand-accent">Setup:</span> {selected.setupTip}</span>
+          <div className="flex items-center justify-between gap-3 w-full">
+            <span><span className="font-semibold text-brand-accent">Setup:</span> {selected.setupTip}</span>
+            {selected.id === "squat" && (
+              <button
+                type="button"
+                onClick={() => setShowSquatTutorial(true)}
+                className="px-3 py-1.5 rounded-lg ring-1 ring-brand-accent/40 text-brand-accent font-semibold text-xs whitespace-nowrap hover:ring-brand-accent/70 transition-smooth"
+              >
+                Watch tutorial
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -333,9 +360,20 @@ export default function App() {
                 </button>
                 {/* Setup tip shown inline on mobile when idle */}
                 {status === "idle" && (
-                  <div className="md:hidden glass-card rounded-xl p-3 text-center text-sm text-slate-300 max-w-xs mx-4 animate-fade-in">
-                    <span className="font-semibold text-brand-accent">Setup:</span>{" "}
-                    {selected.setupTip}
+                  <div className="md:hidden glass-card rounded-xl p-3 text-center text-sm text-slate-300 max-w-xs mx-4 animate-fade-in space-y-2">
+                    <p>
+                      <span className="font-semibold text-brand-accent">Setup:</span>{" "}
+                      {selected.setupTip}
+                    </p>
+                    {selected.id === "squat" && (
+                      <button
+                        type="button"
+                        onClick={() => setShowSquatTutorial(true)}
+                        className="px-3 py-1.5 rounded-lg ring-1 ring-brand-accent/40 text-brand-accent font-semibold text-xs whitespace-nowrap hover:ring-brand-accent/70 transition-smooth"
+                      >
+                        Watch tutorial
+                      </button>
+                    )}
                   </div>
                 )}
               </>
@@ -500,9 +538,9 @@ export default function App() {
         </div>
       )}
 
-      {isMobile && status === "idle" && selected.id === "squat" && showSquatTutorial && (
+      {status === "idle" && selected.id === "squat" && showSquatTutorial && (
         <SquatTutorialModal
-          videoSrc="/squat.mp4"
+          videoSrc={SQUAT_TUTORIAL_VIDEO_SRC}
           onSkip={skipSquatTutorial}
           onClose={closeSquatTutorial}
           onEnded={endSquatTutorial}

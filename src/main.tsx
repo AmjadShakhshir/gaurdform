@@ -3,7 +3,7 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import "./index.css";
 
-const CACHE_CLEANUP_KEY = "formguard:cache-cleanup:v1";
+const CACHE_CLEANUP_KEY = "formguard:cache-cleanup:v2";
 
 async function cleanupLegacyPwaCache() {
   try {
