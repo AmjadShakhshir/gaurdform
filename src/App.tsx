@@ -197,6 +197,12 @@ export default function App() {
     }
   };
 
+  const openSquatTutorial = () => {
+    if (selected.id !== "squat") return;
+    if (status === "ready") stop();
+    setShowSquatTutorial(true);
+  };
+
   const ctaLabel =
     status === "idle"
       ? "Start"
@@ -284,6 +290,17 @@ export default function App() {
           onSelect={setSelected}
           disabled={status === "loading"}
         />
+        {selected.id === "squat" && (
+          <div className="mt-2 px-1">
+            <button
+              type="button"
+              onClick={openSquatTutorial}
+              className="px-3 py-1.5 rounded-lg ring-1 ring-brand-accent/40 text-brand-accent font-semibold text-xs whitespace-nowrap hover:ring-brand-accent/70 transition-smooth"
+            >
+              Watch tutorial
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ── Desktop setup tip (hidden on mobile) ── */}
@@ -295,7 +312,7 @@ export default function App() {
             {selected.id === "squat" && (
               <button
                 type="button"
-                onClick={() => setShowSquatTutorial(true)}
+                onClick={openSquatTutorial}
                 className="px-3 py-1.5 rounded-lg ring-1 ring-brand-accent/40 text-brand-accent font-semibold text-xs whitespace-nowrap hover:ring-brand-accent/70 transition-smooth"
               >
                 Watch tutorial
@@ -368,7 +385,7 @@ export default function App() {
                     {selected.id === "squat" && (
                       <button
                         type="button"
-                        onClick={() => setShowSquatTutorial(true)}
+                        onClick={openSquatTutorial}
                         className="px-3 py-1.5 rounded-lg ring-1 ring-brand-accent/40 text-brand-accent font-semibold text-xs whitespace-nowrap hover:ring-brand-accent/70 transition-smooth"
                       >
                         Watch tutorial
@@ -394,12 +411,23 @@ export default function App() {
             <StreakBadge streakInfo={traineeData.streakInfo} />
           </div>
           <div className="pointer-events-auto">
-            <ExerciseSelector
-              selected={selected}
-              onSelect={setSelected}
-              disabled={status === "loading"}
-              compact
-            />
+            <div className="flex flex-col items-end gap-1.5">
+              <ExerciseSelector
+                selected={selected}
+                onSelect={setSelected}
+                disabled={status === "loading"}
+                compact
+              />
+              {selected.id === "squat" && (
+                <button
+                  type="button"
+                  onClick={openSquatTutorial}
+                  className="px-2.5 py-1 rounded-lg text-[11px] font-semibold ring-1 ring-brand-accent/50 text-brand-accent bg-black/40 backdrop-blur-sm"
+                >
+                  Tutorial
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -538,7 +566,7 @@ export default function App() {
         </div>
       )}
 
-      {status === "idle" && selected.id === "squat" && showSquatTutorial && (
+      {selected.id === "squat" && showSquatTutorial && (
         <SquatTutorialModal
           videoSrc={SQUAT_TUTORIAL_VIDEO_SRC}
           onSkip={skipSquatTutorial}
